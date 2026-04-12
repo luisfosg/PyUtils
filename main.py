@@ -1,6 +1,7 @@
 import os
 import importlib
 import sys
+import argparse
 
 COMMANDS_FOLDER = "commands"
 
@@ -35,11 +36,11 @@ def load_commands(folder):
                 if hasattr(module, "run"):
                     commands[module_name] = module.run
                 else:
-                    print(f"El módulo '{module_name}' no tiene una función 'run'.")
-            except ImportError as e:
-                print(f"Error al cargar el módulo '{module_name}': {e.name}")
-            except Exception as e:
-                print(f"Error al cargar el módulo '{module_name}': {e}")
+                    pass
+            except ImportError:
+                pass
+            except Exception:
+                pass
 
     sys.path.pop(0)
     return commands
@@ -73,6 +74,25 @@ def main():
         )
         return
 
+    args_parser = argparse.ArgumentParser(description="PyToolbox CLI")
+    args_parser.add_argument("command", nargs="?", help="Comando a ejecutar")
+    args_parser.add_argument(
+        "args", nargs=argparse.REMAINDER, help="Argumentos para el comando"
+    )
+    parsed = args_parser.parse_args()
+
+    if parsed.command:
+        if parsed.command in commands:
+            print(f"\n▶ Ejecutando: {parsed.command.replace('_', ' ').title()}")
+            print("─" * 40)
+            commands[parsed.command](parsed.args)
+            print("─" * 40)
+            print("✅ Completado\n")
+        else:
+            print(f"Comando '{parsed.command}' no encontrado.")
+            print(f"Comandos disponibles: {', '.join(commands.keys())}")
+        return
+
     while True:
         show_menu(commands)
         choice = input("  → ").strip()
@@ -87,7 +107,8 @@ def main():
                 command_name = list(commands.keys())[choice - 1]
                 print(f"\n▶ Ejecutando: {command_name.replace('_', ' ').title()}")
                 print("─" * 40)
-                commands[command_name]()
+                remaining_args = sys.argv[2:] if len(sys.argv) > 2 else []
+                commands[command_name](remaining_args)
                 print("─" * 40)
                 print("✅ Completado\n")
             else:
